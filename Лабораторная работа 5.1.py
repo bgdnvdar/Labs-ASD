@@ -1,0 +1,39 @@
+import itertools
+
+
+def generate_matrix_variants(matrix):
+    n = len(matrix)
+    diagonal_pairs = []
+
+    # Собираем пары элементов с главной и побочной диагоналей для каждой строки
+    for i in range(n):
+        main_diag = matrix[i][i]  # Элемент главной диагонали
+        anti_diag = matrix[i][n - 1 - i]  # Элемент побочной диагонали
+        diagonal_pairs.append([(main_diag, anti_diag), (anti_diag, main_diag)])
+
+    # Генерируем все возможные комбинации перестановок
+    variants = itertools.product(*diagonal_pairs)
+
+    # Создаем матрицы для каждой комбинации
+    result = []
+    for variant in variants:
+        new_matrix = [row.copy() for row in matrix]
+        for i in range(n):
+            new_matrix[i][i] = variant[i][0]  # Главная диагональ
+            new_matrix[i][n - 1 - i] = variant[i][1]  # Побочная диагональ
+        result.append(new_matrix)
+
+    return result
+matrix = [
+    [1, 2, 3,10],
+    [4, 5, 6,11],
+    [7, 8, 9,12],
+    [13,14,15,16 ]
+]
+
+variants = generate_matrix_variants(matrix)
+for i, variant in enumerate(variants, 1):
+    print(f"Вариант {i}:")
+    for row in variant:
+        print(row)
+    print()
