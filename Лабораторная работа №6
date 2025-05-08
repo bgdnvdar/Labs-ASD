@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 def F_rec(n):
     if n == 1:
         return 19
-    sign = -1 if n % 2 == 0 else 1  # Альтернативный способ знакопеременности
+    sign = -1 if n % 2 == 0 else 1  
     return sign * (3 * F_rec(n - 1) - 2 * G_rec(n - 1))
 
 def G_rec(n):
@@ -48,7 +48,7 @@ def G_iter(n):
 
     return g_prev
 
-# Остальная часть программы остается без изменений
+
 def measure_time(func, n):
     return timeit.timeit(lambda: func(n), number=100)
 
