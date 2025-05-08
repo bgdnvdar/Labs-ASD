@@ -3,11 +3,11 @@ import timeit
 import matplotlib.pyplot as plt
 
 
-# Рекурсивные функции (без изменений)
+# Рекурсивные функции 
 def F_rec(n):
     if n == 1:
         return 19
-    return (3 * F_rec(n - 1) - 2 * G_rec(n - 1))  # Убрано (-1)**n
+    return (3 * F_rec(n - 1) - 2 * G_rec(n - 1))  
 
 
 def G_rec(n):
@@ -26,7 +26,7 @@ def F_iter(n):
     current_fact = 1  # 0! = 1
 
     for i in range(2, n + 1):
-        current_fact *= (i - 1)  # Накопление факториала: (i-1)! = (i-2)! * (i-1)
+        current_fact *= (i - 1) 
         f_current = (3 * f_prev - 2 * g_prev)
         g_current = current_fact + 2 * g_prev
 
@@ -43,14 +43,14 @@ def G_iter(n):
     current_fact = 1  # 0! = 1
 
     for i in range(2, n + 1):
-        current_fact *= (i - 1)  # Накопление факториала
+        current_fact *= (i - 1)  
         g_current = current_fact + 2 * g_prev
         g_prev = g_current
 
     return g_prev
 
 
-# Остальная часть программы без изменений
+
 def measure_time(func, n):
     return timeit.timeit(lambda: func(n), number=100)
 
