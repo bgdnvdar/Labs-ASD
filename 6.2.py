@@ -2,21 +2,20 @@ import math
 import timeit
 import matplotlib.pyplot as plt
 
-
-# Рекурсивные функции 
+# Рекурсивные функции с битовой знакопеременностью
 def F_rec(n):
     if n == 1:
         return 19
-    return (3 * F_rec(n - 1) - 2 * G_rec(n - 1))  
-
+    # Используем битовую операцию для определения знака (быстрее чем (-1)**n)
+    sign = 1 if (n & 1) else -1  # n & 1 проверяет четность
+    return sign * (3 * F_rec(n - 1) - 2 * G_rec(n - 1))
 
 def G_rec(n):
     if n == 1:
         return 19
     return math.factorial(n - 1) + 2 * G_rec(n - 1)
 
-
-# Модифицированные итерационные функции с накоплением факториала
+# Итерационные функции с битовой знакопеременностью
 def F_iter(n):
     if n == 1:
         return 19
@@ -24,16 +23,18 @@ def F_iter(n):
     f_prev = 19
     g_prev = 19
     current_fact = 1  # 0! = 1
+    sign = -1  # Начинаем с -1 для n=2
 
     for i in range(2, n + 1):
-        current_fact *= (i - 1) 
-        f_current = (3 * f_prev - 2 * g_prev)
+        current_fact *= (i - 1)
+        # Используем быструю смену знака через битовую операцию
+        sign = -1 if not (i & 1) else 1
+        f_current = sign * (3 * f_prev - 2 * g_prev)
         g_current = current_fact + 2 * g_prev
-
+        
         f_prev, g_prev = f_current, g_current
 
     return f_prev
-
 
 def G_iter(n):
     if n == 1:
@@ -43,17 +44,15 @@ def G_iter(n):
     current_fact = 1  # 0! = 1
 
     for i in range(2, n + 1):
-        current_fact *= (i - 1)  
+        current_fact *= (i - 1)
         g_current = current_fact + 2 * g_prev
         g_prev = g_current
 
     return g_prev
 
-
-
+# Функция для измерения времени выполнения
 def measure_time(func, n):
     return timeit.timeit(lambda: func(n), number=100)
-
 
 def main():
     n = int(input("Введите натуральное число N: "))
@@ -90,9 +89,9 @@ def main():
         results['time_rec'].append(time_rec)
         results['time_iter'].append(time_iter)
 
+    # Вывод результатов
     print("\nРезультаты вычислений:")
-    print(
-        f"{'n':<5}{'F рекурсивно':<20}{'F итерационно':<20}{'G рекурсивно':<20}{'G итерационно':<20}{'Время рекурсии (мс)':<20}{'Время итерации (мс)':<20}")
+    print(f"{'n':<5}{'F рекурсивно':<20}{'F итерационно':<20}{'G рекурсивно':<20}{'G итерационно':<20}{'Время рекурсии (мс)':<20}{'Время итерации (мс)':<20}")
     for i in range(n):
         print(f"{results['n'][i]:<5}"
               f"{results['F_rec'][i]:<20.2f}"
@@ -102,9 +101,21 @@ def main():
               f"{results['time_rec'][i]:<20.4f}"
               f"{results['time_iter'][i]:<20.4f}")
 
-    plt.figure(figsize=(12, 6))
+    # Визуализация
+    plt.figure(figsize=(15, 6))
 
+    # График значений
     plt.subplot(1, 2, 1)
+    plt.plot(results['n'], results['F_rec'], 'r-', label='F рекурсивно')
+    plt.plot(results['n'], results['F_iter'], 'b--', label='F итерационно')
+    plt.xlabel('n')
+    plt.ylabel('Значение')
+    plt.title('Сравнение значений F(n)')
+    plt.legend()
+    plt.grid()
+
+    # График времени выполнения
+    plt.subplot(1, 2, 2)
     plt.plot(results['n'], results['time_rec'], 'r-', label='Рекурсия')
     plt.plot(results['n'], results['time_iter'], 'b-', label='Итерация')
     plt.xlabel('n')
@@ -113,18 +124,8 @@ def main():
     plt.legend()
     plt.grid()
 
-    plt.subplot(1, 2, 2)
-    plt.plot(results['n'], results['F_rec'], 'r-', label='F рекурсивно')
-    plt.plot(results['n'], results['F_iter'], 'b--', label='F итерационно')
-    plt.xlabel('n')
-    plt.ylabel('Значение F(n)')
-    plt.title('Сравнение значений F(n)')
-    plt.legend()
-    plt.grid()
-
     plt.tight_layout()
     plt.show()
-
 
 if __name__ == "__main__":
     main()
