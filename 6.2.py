@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 def F_rec(n):
     if n == 1:
         return 19
-    # Используем битовую операцию для определения знака (быстрее чем (-1)**n)
-    sign = 1 if (n & 1) else -1  # n & 1 проверяет четность
+
+    sign = 1 if (n & 1) else -1  
     return sign * (3 * F_rec(n - 1) - 2 * G_rec(n - 1))
 
 def G_rec(n):
