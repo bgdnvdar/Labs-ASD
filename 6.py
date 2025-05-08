@@ -1,0 +1,147 @@
+import math
+import timeit
+import matplotlib.pyplot as plt
+
+
+# Рекурсивные функции
+def F_rec(n):
+    if n == 1:
+        return 19
+    return (-1) ** n * (3 * F_rec(n - 1) - 2 * G_rec(n - 1))
+
+
+def G_rec(n):
+    if n == 1:
+        return 19
+    return math.factorial(n - 1) + 2 * G_rec(n - 1)
+
+
+# Итерационные функции
+def F_iter(n):
+    if n == 1:
+        return 19
+
+    f_prev = 19
+    g_prev = 19
+
+    for i in range(2, n + 1):
+        sign = (-1) ** i
+        f_current = sign * (3 * f_prev - 2 * g_prev)
+        g_current = math.factorial(i - 1) + 2 * g_prev
+
+        f_prev, g_prev = f_current, g_current
+
+    return f_prev
+
+
+def G_iter(n):
+    if n == 1:
+        return 19
+
+    g_prev = 19
+
+    for i in range(2, n + 1):
+        g_current = math.factorial(i - 1) + 2 * g_prev
+        g_prev = g_current
+
+    return g_prev
+
+
+# Функция для измерения времени выполнения
+def measure_time(func, n):
+    return timeit.timeit(lambda: func(n), number=100)
+
+
+# Основная программа
+def main():
+    n = int(input("Введите натуральное число N: "))
+
+    # Подготовка данных
+    results = {
+        'n': [],
+        'F_rec': [],
+        'F_iter': [],
+        'G_rec': [],
+        'G_iter': [],
+        'time_rec': [],
+        'time_iter': []
+    }
+
+    # Вычисление значений и времени
+    for i in range(1, n + 1):
+        results['n'].append(i)
+
+        # Рекурсивные вычисления
+        start = timeit.default_timer()
+        f_rec = F_rec(i)
+        g_rec = G_rec(i)
+        time_rec = (timeit.default_timer() - start) * 1000  # в мс
+
+        # Итерационные вычисления
+        start = timeit.default_timer()
+        f_iter = F_iter(i)
+        g_iter = G_iter(i)
+        time_iter = (timeit.default_timer() - start) * 1000  # в мс
+
+        # Сохранение результатов
+        results['F_rec'].append(f_rec)
+        results['F_iter'].append(f_iter)
+        results['G_rec'].append(g_rec)
+        results['G_iter'].append(g_iter)
+        results['time_rec'].append(time_rec)
+        results['time_iter'].append(time_iter)
+
+    # Вывод таблицы
+    print("\nРезультаты вычислений:")
+    print(
+        f"{'n':<5}{'F рекурсивно':<20}{'F итерационно':<20}{'G рекурсивно':<20}{'G итерационно':<20}{'Время рекурсии (мс)':<20}{'Время итерации (мс)':<20}")
+    for i in range(n):
+        print(f"{results['n'][i]:<5}"
+              f"{results['F_rec'][i]:<20.2f}"
+              f"{results['F_iter'][i]:<20.2f}"
+              f"{results['G_rec'][i]:<20.2f}"
+              f"{results['G_iter'][i]:<20.2f}"
+              f"{results['time_rec'][i]:<20.4f}"
+              f"{results['time_iter'][i]:<20.4f}")
+
+    # Построение графиков
+    plt.figure(figsize=(12, 6))
+
+    # График времени выполнения
+    plt.subplot(1, 2, 1)
+    plt.plot(results['n'], results['time_rec'], 'r-', label='Рекурсия')
+    plt.plot(results['n'], results['time_iter'], 'b-', label='Итерация')
+    plt.xlabel('n')
+    plt.ylabel('Время (мс)')
+    plt.title('Сравнение времени выполнения')
+    plt.legend()
+    plt.grid()
+
+    # График значений F(n)
+    plt.subplot(1, 2, 2)
+    plt.plot(results['n'], results['F_rec'], 'r-', label='F рекурсивно')
+    plt.plot(results['n'], results['F_iter'], 'b--', label='F итерационно')
+    plt.xlabel('n')
+    plt.ylabel('Значение F(n)')
+    plt.title('Сравнение значений F(n)')
+    plt.legend()
+    plt.grid()
+
+    plt.tight_layout()
+    plt.show()
+
+    # Анализ границ применимости
+    print("\nАнализ границ применимости:")
+    print("1. Рекурсивный подход:")
+    print("   - Преимущества: проще в реализации, более читаемый код")
+    print("   - Недостатки: требует больше памяти (стек вызовов), медленнее при больших n")
+    print("   - Рекомендуется использовать при n < 20")
+
+    print("\n2. Итерационный подход:")
+    print("   - Преимущества: быстрее, использует меньше памяти")
+    print("   - Недостатки: код сложнее для понимания")
+    print("   - Рекомендуется использовать при n >= 20")
+
+
+if __name__ == "__main__":
+    main()
