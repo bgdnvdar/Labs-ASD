@@ -1,0 +1,144 @@
+import tkinter as tk
+from tkinter import scrolledtext, messagebox
+
+
+def generate_matrix_variants_recursive(matrix):
+    n = len(matrix)
+    result = []
+
+    def backtrack(current_matrix, row):
+        if row == n:
+            result.append([r.copy() for r in current_matrix])
+            return
+
+        # Копируем текущую строку
+        original_row = current_matrix[row].copy()
+
+        # Вариант 1: оставить как есть
+        backtrack(current_matrix, row + 1)
+
+        # Вариант 2: поменять местами элементы диагоналей
+        i = row
+        j = n - 1 - row
+        if i != j:  # Если не центральный элемент
+            current_matrix[row][i], current_matrix[row][j] = current_matrix[row][j], current_matrix[row][i]
+            backtrack(current_matrix, row + 1)
+            # Возвращаем на место
+            current_matrix[row][i], current_matrix[row][j] = current_matrix[row][j], current_matrix[row][i]
+
+    matrix_copy = [row.copy() for row in matrix]
+    backtrack(matrix_copy, 0)
+    return result
+
+
+def find_optimal_variant(variants):
+    if not variants:
+        return None
+
+    # Функция для вычисления "качества" варианта (сумма элементов)
+    def calculate_quality(matrix):
+        return sum(sum(row) for row in matrix)
+
+    # Находим вариант с максимальной суммой элементов
+    optimal = max(variants, key=calculate_quality)
+    return optimal, calculate_quality(optimal)
+
+
+def calculate_variants():
+    try:
+        # Получаем введенную матрицу
+        matrix_text = entry_matrix.get("1.0", tk.END).strip()
+        if not matrix_text:
+            raise ValueError("Введите матрицу в текстовое поле.")
+
+        # Преобразуем текст в матрицу чисел
+        rows = matrix_text.split('\n')
+        matrix = []
+        for row in rows:
+            if row.strip():
+                matrix.append(list(map(int, row.split())))
+
+        # Проверяем, что матрица квадратная
+        n = len(matrix)
+        for row in matrix:
+            if len(row) != n:
+                raise ValueError("Матрица должна быть квадратной.")
+
+        # Генерируем варианты
+        variants = generate_matrix_variants_recursive(matrix)
+
+        # Находим оптимальный вариант
+        optimal_variant, optimal_quality = find_optimal_variant(variants)
+
+        # Форматируем результат для вывода
+        result = f"Всего вариантов: {len(variants)}\n\n"
+
+        # Выводим все варианты
+        for i, variant in enumerate(variants[:20], 1):  # Ограничиваем вывод 20 вариантами
+            current_quality = sum(sum(row) for row in variant)
+            result += f"Вариант {i} (сумма = {current_quality}):\n"
+            for row in variant:
+                result += " ".join(f"{num:2}" for num in row) + "\n"
+            result += "\n"
+
+        if len(variants) > 20:
+            result += f"... и еще {len(variants) - 20} вариантов\n\n"
+
+        # Выводим оптимальный вариант
+        if optimal_variant:
+            result += "=" * 50 + "\n"
+            result += f"Оптимальный вариант (максимальная сумма = {optimal_quality}):\n"
+            for row in optimal_variant:
+                result += " ".join(f"{num:2}" for num in row) + "\n"
+        else:
+            result += "Нет допустимых вариантов\n"
+
+        # Выводим результат
+        output_text.delete(1.0, tk.END)
+        output_text.insert(tk.END, result)
+
+    except ValueError as e:
+        messagebox.showerror("Ошибка ввода", str(e))
+    except Exception as e:
+        messagebox.showerror("Ошибка", f"Произошла ошибка: {str(e)}")
+
+
+# Создаем главное окно
+root = tk.Tk()
+root.title("Генератор вариантов матриц с оптимальным выбором")
+root.geometry("650x550")
+
+# Устанавливаем шрифт
+font = ('Arial', 14)
+
+# Поле для ввода матрицы
+input_frame = tk.Frame(root)
+input_frame.pack(pady=10)
+
+tk.Label(input_frame, text="Введите квадратную матрицу (каждая строка с новой строки,\nэлементы через пробел):",
+         font=font).pack()
+
+entry_matrix = scrolledtext.ScrolledText(input_frame, width=30, height=10, font=font)
+entry_matrix.pack()
+
+# Вставляем пример матрицы по умолчанию
+example_matrix = "1 2 3\n4 5 6\n7 8 9"
+entry_matrix.insert(tk.END, example_matrix)
+
+# Кнопка для генерации
+button_frame = tk.Frame(root)
+button_frame.pack(pady=10)
+
+calculate_button = tk.Button(button_frame, text="Сгенерировать варианты",
+                             command=calculate_variants, font=font, bg="#4CAF50", fg="white")
+calculate_button.pack()
+
+# Поле для вывода результатов
+output_frame = tk.Frame(root)
+output_frame.pack(pady=10)
+
+output_text = scrolledtext.ScrolledText(output_frame, width=40, height=20, font=font)
+output_text.pack()
+
+# Запускаем главный цикл
+root.mainloop()
