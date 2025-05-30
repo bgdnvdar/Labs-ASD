@@ -1,0 +1,292 @@
+import csv
+import tkinter as tk
+from tkinter import ttk, messagebox
+from collections import defaultdict
+from tkinter import Canvas
+import math
+
+
+class BankDeposit:
+    def __init__(self, deposit_id, deposit_type, client_name, amount, duration_months, interest_rate):
+        self.deposit_id = deposit_id
+        self.deposit_type = deposit_type
+        self.client_name = client_name
+        self.amount = float(amount) if amount else 0.0
+        self.duration_months = int(duration_months) if duration_months else 0
+        self.interest_rate = float(interest_rate) if interest_rate else 0.0
+
+    def future_value(self):
+        return self.amount * (1 + self.interest_rate/100) ** (self.duration_months/12)
+
+    def get_size_category(self):
+        if self.amount < 100000:
+            return "Мелкий"
+        elif 100000 <= self.amount <= 1000000:
+            return "Средний"
+        else:
+            return "Крупный"
+
+    def __str__(self):
+        return f"Вклад №{self.deposit_id}: {self.deposit_type}, Клиент: {self.client_name}"
+
+
+class DepositApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Анализ банковских вкладов")
+        self.deposits = []
+
+        self.create_widgets()
+
+    def create_widgets(self):
+        # Основные фреймы
+        main_frame = ttk.Frame(self.root, padding="10")
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        # Фрейм загрузки данных
+        load_frame = ttk.LabelFrame(main_frame, text="Загрузка данных", padding="10")
+        load_frame.grid(row=0, column=0, padx=5, pady=5, sticky=tk.W + tk.E)
+
+        ttk.Button(load_frame, text="Загрузить вклады",
+                   command=self.load_deposits).pack(pady=5)
+        self.status_label = ttk.Label(load_frame, text="Данные не загружены")
+        self.status_label.pack(pady=5)
+
+        # Фрейм анализа
+        analysis_frame = ttk.LabelFrame(main_frame, text="Анализ вкладов", padding="10")
+        analysis_frame.grid(row=1, column=0, padx=5, pady=5, sticky=tk.W + tk.E)
+
+        ttk.Button(analysis_frame, text="Анализ по видам вкладов",
+                   command=self.analyze_by_deposit_type).pack(fill=tk.X, pady=2)
+        ttk.Button(analysis_frame, text="Анализ по размерам вкладов",
+                   command=self.analyze_by_size_category).pack(fill=tk.X, pady=2)
+        ttk.Button(analysis_frame, text="Общая сумма вкладов",
+                   command=self.show_total_amount).pack(fill=tk.X, pady=2)
+        ttk.Button(analysis_frame, text="Общая будущая стоимость",
+                   command=self.show_total_future_value).pack(fill=tk.X, pady=2)
+
+        # Фрейм результатов
+        result_frame = ttk.LabelFrame(main_frame, text="Результаты", padding="10")
+        result_frame.grid(row=0, column=1, rowspan=2, padx=5, pady=5, sticky=tk.N + tk.S + tk.E + tk.W)
+
+        self.result_text = tk.Text(result_frame, height=15, width=40)
+        self.result_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        scrollbar = ttk.Scrollbar(result_frame, orient=tk.VERTICAL, command=self.result_text.yview)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.result_text['yscrollcommand'] = scrollbar.set
+
+        # Фрейм для круговых диаграмм
+        self.chart_frame = ttk.LabelFrame(main_frame, text="Диаграмма", padding="10")
+        self.chart_frame.grid(row=2, column=0, columnspan=2, padx=5, pady=5, sticky=tk.W + tk.E)
+
+        self.canvas = Canvas(self.chart_frame, width=500, height=400, bg='white')
+        self.canvas.pack(fill=tk.BOTH, expand=True)
+
+        # Настройка веса колонок и строк
+        main_frame.columnconfigure(0, weight=1)
+        main_frame.columnconfigure(1, weight=2)
+        main_frame.rowconfigure(1, weight=1)
+
+    def load_deposits(self):
+        try:
+            with open('deposits.csv', 'r', encoding='utf-8') as file:
+                reader = csv.DictReader(file)
+                self.deposits = []
+                errors = 0
+
+                required_fields = ['DepositID', 'DepositType', 'ClientName', 'Amount', 'DurationMonths', 'InterestRate']
+
+                for row in reader:
+                    # Проверка наличия всех обязательных полей
+                    if not all(field in row for field in required_fields):
+                        errors += 1
+                        continue
+
+                    try:
+                        deposit = BankDeposit(
+                            row['DepositID'],
+                            row['DepositType'],
+                            row['ClientName'],
+                            row['Amount'],
+                            row['DurationMonths'],
+                            row['InterestRate']
+                        )
+                        self.deposits.append(deposit)
+                    except (ValueError, KeyError) as e:
+                        errors += 1
+                        print(f"Ошибка в строке: {row}. Ошибка: {e}")
+
+                self.status_label.config(text=f"Загружено {len(self.deposits)} вкладов. Ошибок: {errors}")
+                if errors > 0:
+                    messagebox.showwarning("Предупреждение", f"Загружено с {errors} ошибками")
+                else:
+                    messagebox.showinfo("Успех", f"Успешно загружено {len(self.deposits)} вкладов")
+
+        except FileNotFoundError:
+            messagebox.showerror("Ошибка", "Файл deposits.csv не найден!")
+        except Exception as e:
+            messagebox.showerror("Ошибка", f"Произошла ошибка при чтении файла: {e}")
+
+    def analyze_by_deposit_type(self):
+        if not self.deposits:
+            messagebox.showwarning("Предупреждение", "Сначала загрузите данные о вкладах")
+            return
+
+        deposit_types = defaultdict(list)
+        for deposit in self.deposits:
+            deposit_types[deposit.deposit_type].append(deposit)
+
+        self.show_results("Анализ по видам вкладов:", deposit_types)
+        self.draw_pie_chart(deposit_types, "Распределение вкладов по видам")
+
+    def analyze_by_size_category(self):
+        if not self.deposits:
+            messagebox.showwarning("Предупреждение", "Сначала загрузите данные о вкладах")
+            return
+
+        size_categories = defaultdict(list)
+        for deposit in self.deposits:
+            size_categories[deposit.get_size_category()].append(deposit)
+
+        self.show_results("Анализ по размерам вкладов:", size_categories)
+        self.draw_pie_chart(size_categories, "Распределение вкладов по размерам")
+
+    def show_total_amount(self):
+        if not self.deposits:
+            messagebox.showwarning("Предупреждение", "Сначала загрузите данные о вкладах")
+            return
+
+        total = sum(deposit.amount for deposit in self.deposits)
+        self.result_text.delete(1.0, tk.END)
+        self.result_text.insert(tk.END, f"Общая сумма всех вкладов: {total:.2f}\n")
+
+    def show_total_future_value(self):
+        if not self.deposits:
+            messagebox.showwarning("Предупреждение", "Сначала загрузите данные о вкладах")
+            return
+
+        total = sum(deposit.future_value() for deposit in self.deposits)
+        self.result_text.delete(1.0, tk.END)
+        self.result_text.insert(tk.END, f"Общая будущая стоимость всех вкладов: {total:.2f}\n")
+
+    def show_results(self, title, data):
+        self.result_text.delete(1.0, tk.END)
+        self.result_text.insert(tk.END, f"{title}\n\n")
+
+        total_deposits = sum(len(v) for v in data.values())
+        for key, deposits in sorted(data.items(), key=lambda x: -len(x[1])):
+            percentage = (len(deposits) / total_deposits) * 100
+            total_amount = sum(d.amount for d in deposits)
+            avg_amount = total_amount / len(deposits) if deposits else 0
+
+            self.result_text.insert(tk.END,
+                                    f"{key}:\n"
+                                    f" - Количество: {len(deposits)} ({percentage:.1f}%)\n"
+                                    f" - Общая сумма: {total_amount:.2f}\n"
+                                    f" - Средний размер: {avg_amount:.2f}\n\n")
+
+    def draw_pie_chart(self, data, title):
+        self.canvas.delete("all")
+
+        if not data:
+            return
+
+        total = sum(len(v) for v in data.values())
+        if total == 0:
+            return
+
+        # Параметры диаграммы
+        center_x, center_y = 250, 200
+        radius = 150
+        start_angle = 0
+
+        # Цвета для сегментов
+        colors = ['#FF9999', '#66B2FF', '#99FF99', '#FFCC99', '#FF99CC',
+                  '#FFFF99', '#CC99FF', '#99FFFF', '#FF6666', '#6699FF']
+
+        # Собираем информацию о текстовых блоках для оптимизации размещения
+        text_blocks = []
+
+        # Сначала рисуем все сегменты
+        for i, (key, deposits) in enumerate(sorted(data.items(), key=lambda x: -len(x[1]))):
+            angle = (len(deposits) / total) * 360
+            color = colors[i % len(colors)]
+
+            # Рисуем сегмент
+            self.canvas.create_arc(
+                center_x - radius, center_y - radius,
+                center_x + radius, center_y + radius,
+                start=start_angle, extent=angle,
+                fill=color, outline='black'
+            )
+
+            # Сохраняем информацию для текста (будем рисовать после всех сегментов)
+            percent = (len(deposits) / total) * 100
+            mid_angle = start_angle + angle / 2
+            text_blocks.append((key, percent, mid_angle, color))
+
+            start_angle += angle
+
+        # Теперь рисуем текст с оптимальным размещением
+        for key, percent, mid_angle, color in text_blocks:
+            # Рассчитываем базовые координаты
+            text_radius = radius * 0.6  # Начальное расстояние от центра
+
+            # Рассчитываем координаты точки на окружности
+            angle_rad = math.radians(mid_angle)
+            base_x = center_x + text_radius * math.cos(angle_rad)
+            base_y = center_y + text_radius * math.sin(angle_rad)
+
+            # Создаем временный текст для измерения его размеров
+            temp_text = self.canvas.create_text(
+                base_x, base_y,
+                text=f"{key[:10]}\n{percent:.1f}%",
+                font=('Arial', 8),
+                fill='black',
+                tags="temp"
+            )
+
+            # Получаем координаты ограничивающего прямоугольника
+            bbox = self.canvas.bbox(temp_text)
+            text_width = bbox[2] - bbox[0]
+            text_height = bbox[3] - bbox[1]
+
+            # Удаляем временный текст
+            self.canvas.delete(temp_text)
+
+            # Корректируем положение текста в зависимости от квадранта
+            if 45 <= mid_angle < 135:  # Верхний квадрант
+                anchor = tk.S
+                base_y -= text_height / 2
+            elif 135 <= mid_angle < 225:  # Левый квадрант
+                anchor = tk.E
+                base_x -= text_width / 2
+            elif 225 <= mid_angle < 315:  # Нижний квадрант
+                anchor = tk.N
+                base_y += text_height / 2
+            else:  # Правый квадрант
+                anchor = tk.W
+                base_x += text_width / 2
+
+            # Окончательное размещение текста
+            self.canvas.create_text(
+                base_x, base_y,
+                text=f"{key[:10]}\n{percent:.1f}%",
+                font=('Arial', 8),
+                fill='black',
+                anchor=anchor
+            )
+
+        # Заголовок
+        self.canvas.create_text(
+            center_x, 20,
+            text=title,
+            font=('Arial', 10, 'bold')
+        )
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = DepositApp(root)
+    root.mainloop()
